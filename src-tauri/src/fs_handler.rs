@@ -1,54 +1,33 @@
 use tokio::fs;
 
-#[tauri::command]
-pub async fn create_directory(path: String) -> (bool, Option<String>) {
-    match fs::create_dir_all(&path).await {
-        Ok(_) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
-    }
+type Result<T> = std::result::Result<T, String>;
+
+macro_rules! ConvertResult {
+    ($result: ident) => {
+        $result.or_else(|v| return Err(v.to_string()))
+    };
 }
 
-#[tauri::command]
-pub async fn write_file(path: String, data: String) -> (bool, Option<String>) {
-    match fs::write(&path, &data).await {
-        Ok(_) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
-    }
+macro_rules! ConvertFunction {
+    ($fn_name:tt, $origin:tt, $r:ty, $($a:ident),*) => {
+        #[tauri::command]
+        pub async fn $fn_name($($a: String),*) -> Result<$r> {
+            let value = fs::$origin($($a),*).await;
+            return ConvertResult!(value)
+        }
+    };
 }
 
-#[tauri::command]
-pub async fn write_binary_file(path: String, data: Vec<u8>) -> (bool, Option<String>) {
-    match fs::write(&path, &data).await {
-        Ok(_) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
-    }
-}
+ConvertFunction!(create_directory, create_dir_all, (), path);
+ConvertFunction!(write_file, write, (), path, data);
+ConvertFunction!(delete_directory, remove_dir_all, (), path);
+ConvertFunction!(delete_file, remove_file, (), path);
+ConvertFunction!(read_file, read_to_string, String, path);
+ConvertFunction!(exists, try_exists, bool, path);
 
+/* Not using macro due to different type */
 #[tauri::command]
-pub async fn delete_directory(path: String) -> (bool, Option<String>) {
-    match fs::remove_dir_all(&path).await {
-        Ok(_) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
-    }
-}
-
-#[tauri::command]
-pub async fn delete_file(path: String) -> (bool, Option<String>) {
-    match fs::remove_file(&path).await {
-        Ok(_) => (true, None),
-        Err(err) => (false, Some(err.to_string())),
-    }
-}
-
-#[tauri::command]
-pub async fn read_file(path: String) -> (bool, Option<String>) {
-    match fs::read_to_string(&path).await {
-        Ok(data) => (true, Some(data)),
-        Err(err) => (false, Some(err.to_string())),
-    }
-}
-
-#[tauri::command]
-pub async fn exists(path: String) -> bool {
-    fs::metadata(&path).await.is_ok()
+pub async fn write_binary_file(path: String, data: Vec<u8>) -> Result<()> {
+    let value = fs::write(&path, &data).await;
+    return ConvertResult!(value);
 }
