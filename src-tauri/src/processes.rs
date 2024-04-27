@@ -3,18 +3,16 @@ use sysinfo::System;
 
 #[derive(Clone, Serialize)]
 struct RobloxInstanceUpdatePlayload {
-    instances: Vec<u32>
+    instances: Vec<u32>,
 }
 
 #[tauri::command]
-pub fn kill_roblox() -> bool {
-    return match System::new_all()
+pub fn kill_roblox() {
+    return System::new_all()
         .processes_by_name("RobloxPlayerBeta.exe")
-        .next()
-    {
-        Some(process) => process.kill(),
-        _ => false,
-    };
+        .for_each(|p| {
+            p.kill();
+        });
 }
 
 #[tauri::command]
@@ -29,7 +27,14 @@ pub fn start_roblox_check_loop(window: tauri::Window) {
                 .collect::<Vec<u32>>();
 
             if previous_roblox_instances != current_roblox_instances {
-                window.emit("instances-update", RobloxInstanceUpdatePlayload { instances: current_roblox_instances.clone() }).unwrap();
+                window
+                    .emit(
+                        "instances-update",
+                        RobloxInstanceUpdatePlayload {
+                            instances: current_roblox_instances.clone(),
+                        },
+                    )
+                    .unwrap();
                 previous_roblox_instances = current_roblox_instances.clone();
             }
 
