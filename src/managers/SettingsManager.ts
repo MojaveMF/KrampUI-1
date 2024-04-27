@@ -67,6 +67,14 @@ export default class SettingsManager {
     }
 
     public static async setSetting<K extends keyof Settings>(setting: K, value: Settings[K]) {
+        // ensure typesafety at runtime
+        const expectedType = typeof this.defaultSettings[setting];
+        const recievedType = typeof value;
+
+        if (expectedType !== recievedType) {
+            throw `${setting} cannot be set expected type ${expectedType} got ${recievedType}`;
+        }
+
         this.currentSettings.update((settings) => {
             return { ...settings, [setting]: value };
         });
@@ -84,15 +92,13 @@ export default class SettingsManager {
                     `Failed to create default settings file. Error: ${results.error}`
                 );
             }
-        } else {
-            const settings = await FileSystemService.readFile("settings/settings.json");
-            if (settings) {
-                this.currentSettings.set(JSON.parse(settings) as Settings);
-            } else {
-                WindowManager.showFatalErrorPopup(
-                    "Failed to read settings file. Using default settings."
-                );
-            }
+            return;
         }
+        const settings = await FileSystemService.readFile("settings/settings.json");
+        if (settings) {
+            this.currentSettings.set(JSON.parse(settings) as Settings);
+            return;
+        }
+        WindowManager.showFatalErrorPopup("Failed to read settings file. Using default settings.");
     }
 }
