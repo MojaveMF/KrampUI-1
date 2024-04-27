@@ -1,32 +1,26 @@
 <script lang="ts">
-  import { invoke } from "@tauri-apps/api";
-  import EditorManager from "../../managers/EditorManager";
+    import { invoke } from "@tauri-apps/api";
+    import EditorManager from "../../managers/EditorManager";
     import type { WindowState } from "../../managers/WindowManager";
     import WindowManager from "../../managers/WindowManager";
     import Button from "../Button.svelte";
-    
+
     let injectButtonDisabled = false;
     let killButtonDisabled = false;
     let executeButtonDisabled = false;
 
     let windowState: WindowState;
-    WindowManager.currentState.subscribe(newValue => {
+    WindowManager.currentState.subscribe((newValue) => {
         windowState = newValue;
 
         killButtonDisabled = !windowState.isRobloxPresent;
-        
-        if (windowState.injectionStatus == "Attached") {
-            executeButtonDisabled = false;
-        } else {
-            executeButtonDisabled = true;
-        }
 
-        if (windowState.isRobloxPresent && windowState.injectionStatus == "Idle") {
-            injectButtonDisabled = false;
-        } else {
-            injectButtonDisabled = true;
-        }
-    })
+        executeButtonDisabled = windowState.injectionStatus != "Attached";
+
+        injectButtonDisabled = !(
+            windowState.isRobloxPresent && windowState.injectionStatus == "Idle"
+        );
+    });
 </script>
 
 <div class="buttons">
@@ -35,7 +29,14 @@
             <i class="fa-solid fa-syringe"></i>
             <span>Inject</span>
         </Button>
-        <Button buttonType="Secondary" className="right-button" isDisabled={killButtonDisabled} buttonCallback={() => { invoke("kill_roblox") }}>
+        <Button
+            buttonType="Secondary"
+            className="right-button"
+            isDisabled={killButtonDisabled}
+            buttonCallback={() => {
+                invoke("kill_roblox");
+            }}
+        >
             <i class="fa-solid fa-ban"></i>
             <span>Kill</span>
         </Button>
@@ -45,7 +46,13 @@
             <i class="fa-solid fa-scroll"></i>
             <span>Execute</span>
         </Button>
-        <Button buttonType="Secondary" className="right-button" buttonCallback={() => { EditorManager.setEditorText("", true) }}>
+        <Button
+            buttonType="Secondary"
+            className="right-button"
+            buttonCallback={() => {
+                EditorManager.setEditorText("", true);
+            }}
+        >
             <i class="fa-solid fa-delete-left"></i>
             <span>Clear</span>
         </Button>
